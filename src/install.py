@@ -1,13 +1,14 @@
-import os
-import time
-import shutil
 import json
+import os
+import shutil
+import subprocess
 import sys
+import time
 
 import config
 import dockerapi as docker
-import util
 import network
+import util
 
 if util.on_macos:
     import OSes.macos as OS
@@ -52,8 +53,9 @@ def update_resolvconf():
         if OS.FLAVOR == 'ubuntu' and config.OS_VERSION >= 18 * 1000:
             open(RESOLVCONF_HEAD, 'a').write(name_servers)
             open(RESOLVCONF_TAIL, 'a').write(options)
-
-        open(RESOLVCONF, 'a').write(f'{name_servers}{options}')
+            subprocess.run(['sudo', 'resolvconf', '-u'])
+        else:
+            open(RESOLVCONF, 'a').write(f'{name_servers}{options}')
 
 
 def main(name=config.DOCKER_CONTAINER_NAME, tag=config.DOCKER_CONTAINER_TAG, tld=config.TOP_LEVEL_DOMAIN):
@@ -78,8 +80,7 @@ def main(name=config.DOCKER_CONTAINER_NAME, tag=config.DOCKER_CONTAINER_TAG, tld
 
     docker_json = json.loads(open(docker_conf_file, 'r').read())
     docker_json['bip'] = docker.DAEMON_BIP
-    docker_json['dns'] = list(
-        set([docker.NETWORK_GATEWAY] + network.get_dns_servers()))
+    docker_json['dns'] = [{docker.NETWORK_GATEWAY, *network.get_dns_servers()}]
     with open(docker_conf_file, 'w') as daemon_file:
         daemon_file.write(json.dumps(docker_json, indent=4, sort_keys=True))
 
@@ -88,8 +89,7 @@ def main(name=config.DOCKER_CONTAINER_NAME, tag=config.DOCKER_CONTAINER_TAG, tld
         docker.purge(name)
         time.sleep(2)
 
-    print(
-        f'Building and running container "{tag}:latest"... Please wait')
+    print(f'Building and running container "{tag}:latest"... Please wait')
     docker.build_container(
         name, tag, tld, bind_port_ip=util.on_linux and not util.on_wsl, target=OS.DOCKER_BUILD_TARGET)
     update_cache()
