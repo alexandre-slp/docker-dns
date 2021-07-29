@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 import socket
 import platform
@@ -30,8 +31,8 @@ if util.on_macos:
     OS_VERSION = int(version[1]) + int(version[0]) * 1000
 elif util.on_windows or util.on_wsl:
     POWERSHELL_PATH = '/mnt/c/Windows/System32/WindowsPowerShell/v1.0//powershell.exe'
-    VERSION_MAJOR_ID = os.popen(
-        f"{POWERSHELL_PATH} [Environment]::OSVersion.Version.Major").read().split('\n')[0]
+    VERSION_MAJOR_ID = subprocess.run(['powershell.exe', '[Environment]::OSVersion.Version.Major'],
+                                      capture_output=True, text=True).stdout.split('\n')[0]
     version = [VERSION_MAJOR_ID, 0]
 else:
     VERSION_MAJOR_ID = open(
@@ -42,7 +43,6 @@ if len(version) > 1:
     OS_VERSION = int(version[1]) + int(version[0]) * 1000
 else:
     OS_VERSION = int(version[0]) * 1000
-del(version)
 
 OS = f'{HOSTUNAME}_{NAME}'
 
