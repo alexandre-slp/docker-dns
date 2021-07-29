@@ -4,9 +4,6 @@ import time
 
 import config
 import dockerapi as docker
-import util
-import network
-import tunnel
 
 FLAVOR = 'windows.wsl2'
 DOCKER_CONF_FOLDER = '/etc/docker'
@@ -61,20 +58,6 @@ rm /tmp/resolv.ddns
     open(f'{config.BASE_PATH}/bin/docker-dns.service.sh',
          'w').write(resolv_script)
     os.chmod(f'{config.BASE_PATH}/bin/docker-dns.service.sh', 0o744)
-
-#        service_script = f"""[Unit]
-# After=network.service
-
-# [Service]
-# ExecStart={config.BASE_PATH}/bin/docker-dns.service.sh
-
-# [Install]
-# WantedBy=default.target"""
-#        open('/etc/systemd/system/docker-dns.service', 'w').write(service_script)
-#        os.chmod('/etc/systemd/system/docker-dns.service', 0o664)
-
-#        os.system('sudo systemctl daemon-reload > /dev/null')
-#        os.system('sudo systemctl enable docker-dns.service > /dev/null')
 
     # Gotta find a better way to start that service, as real services does not work on WSL2 as you have microsoft's init.
     bashrc_content = open(f'{config.HOME}/.bashrc', 'r').read()
@@ -131,6 +114,7 @@ reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Se
     file_name = file_name.replace('/mnt/c', 'C:').replace(' ', '\ ').replace('/', '\\\\')
     os.system(f'{CMD_PATH} /c {file_name} &')
 
+
 def __get_ssh_port():
     port = False
     ports = docker.get_exposed_port(config.DOCKER_CONTAINER_NAME)
@@ -145,28 +129,6 @@ def setup(tld=config.TOP_LEVEL_DOMAIN):
         os.mkdir('/etc/resolver')
     open(f'/etc/resolver/{tld}',
          'w').write(f'nameserver 127.0.0.1')
-
-    # DO NOT DISABLE WSL RESOLV.CONF GENARATION!!! IT WILL BREAK LINUX FOR NOW
-    #
-    # ini = ''
-    # if os.path.exists(WSL_CONF):
-    #    ini = open(WSL_CONF, 'r').read()
-
-    # if '[network]' not in ini:
-    #    ini += "\n[network]\ngenerateResolvConf = false\n"
-    # else:
-    #    if 'generateResolvConf' not in ini:
-    #        ini = ini.replace('[network]', "[network]\ngenerateResolvConf = false\n")
-    #    else:
-    #        ini = ini.split("\n")
-    #        i = 0
-    #        for line in ini:
-    #            if 'generateResolvConf' in line:
-    #                ini[i] = "generateResolvConf = false\n"
-    #                break
-    #            i += 1
-    #        ini = "\n".join(ini)
-    # open(WSL_CONF, 'w').write(ini)
 
     return True
 
@@ -184,7 +146,7 @@ def install(tld=config.TOP_LEVEL_DOMAIN):
     time.sleep(3)
     port = __get_ssh_port()
     if not port:
-        raise('Problem fetching ssh port')
+        raise ('Problem fetching ssh port')
 
     os.system(
         f'ssh-keyscan -H -t ecdsa-sha2-nistp256 -p {port} 127.0.0.1 2> /dev/null >> {KNOWN_HOSTS_FILE}')
@@ -214,7 +176,6 @@ def uninstall(tld=config.TOP_LEVEL_DOMAIN):
         print('Removing kwown_hosts backup')
         os.unlink(f'{config.HOME_ROOT}/.ssh/known_hosts_pre_docker-dns')
 
-    file_name = file_name.replace('[USERNAME]', __get_windows_username())
     file_name = f'{STARTUP_FOLDER_PATH}/docker-dns.bat'
     if os.path.exists(file_name):
         print('Removing bat file from Windows Startup folder')
