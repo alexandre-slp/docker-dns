@@ -1,5 +1,6 @@
 import os
 import shutil
+import subprocess
 import time
 
 import config
@@ -15,7 +16,6 @@ DISABLE_MAIN_RESOLVCONF_ROUTINE = True
 RESOLVCONF = '/run/resolvconf/resolv.conf'
 RESOLVCONF_HEADER = 'options timeout:1 #@docker-dns\nnameserver 127.0.0.1 #@docker-dns'
 CMD_PATH = '/mnt/c/Windows/System32/cmd.exe'
-POWERSHELL_PATH = '/mnt/c/Windows/System32/WindowsPowerShell/v1.0//powershell.exe'
 STARTUP_FOLDER_PATH = '/mnt/c/Users/[USERNAME]/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup'
 DOCKER_BUILD_TARGET = 'base'
 
@@ -24,7 +24,6 @@ if not os.path.exists(DNSMASQ_LOCAL_CONF):
 
 
 def __generate_resolveconf():
-    resolv_script = None
     if os.path.exists(RESOLVCONF):
         RESOLVCONF_DATA = open(RESOLVCONF, 'r').read()
 
@@ -81,8 +80,7 @@ rm /tmp/resolv.ddns
 
 
 def __get_windows_username():
-    return os.popen(
-        f"{POWERSHELL_PATH} '$env:UserName'").read().split('\n')[0]
+    return subprocess.run(['powershell.exe', '$env:UserName'], capture_output=True, text=True).stdout.split('\n')[0]
 
 
 def __generate_proxy_bat(ssh_port=None):
